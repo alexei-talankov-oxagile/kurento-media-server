@@ -100,8 +100,10 @@ checkThreads (float limit_percent)
         << " set a higher limit with `ulimit -Su`, or in the KMS service settings (/etc/default/kurento-media-server)";
     std::string logMessage = oss.str();
 
-    GST_WARNING ("%s", logMessage.c_str());
-    throw KurentoException (NOT_ENOUGH_RESOURCES, exMessage);
+
+  if (nThreads > maxThreads * limit_percent ) {
+    std::cout << "Threads : " << nThreads << "Max threads: " << maxThreads << std::endl;
+    throw KurentoException (NOT_ENOUGH_RESOURCES, "Too many threads");
   }
 }
 
@@ -159,8 +161,10 @@ checkOpenFiles (float limit_percent)
         << " set a higher limit with `ulimit -Sn`, or in the KMS service settings (/etc/default/kurento-media-server)";
     std::string logMessage = oss.str();
 
-    GST_WARNING ("%s", logMessage.c_str());
-    throw KurentoException (NOT_ENOUGH_RESOURCES, exMessage);
+
+  if (nOpenFiles > maxOpenFiles * limit_percent ) {
+    std::cout << "Filed opened: " << nOpenFiles << "Max open files: " << maxOpenFiles << std::endl;
+    throw KurentoException (NOT_ENOUGH_RESOURCES, "Too many open files");
   }
 }
 
@@ -177,11 +181,14 @@ void killServerOnLowResources (float limit_percent)
     GST_DEBUG ("MediaSet empty, checking resources");
 
     try {
+      std::cout << "Checking limits, current limit percent: " << limit_percent << std::endl;
       checkResources (limit_percent);
     } catch (KurentoException &e) {
       if (e.getCode() == NOT_ENOUGH_RESOURCES) {
-        GST_ERROR ("Resources over the limit, server will be killed");
-        kill ( getpid(), SIGTERM );
+        GST_ERROR ("Resources over the limit, server supposed to be killed, but we proceed: %s",
+                    e.what());
+        std::cerr << "Resources over the limit, server supposed to be killed, but we proceed: " << e.what() << std::endl;
+                //kill ( getpid(), SIGTERM );
       }
     }
   });
